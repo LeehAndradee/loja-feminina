@@ -1,0 +1,361 @@
+// PRODUTOS PADRÃO (INICIAIS)
+const initialProducts = [
+    {
+        id: 1,
+        name: "Vestido Midi Romântico Floral",
+        price: 189.90,
+        category: "Vestidos",
+        sizes: ["P", "M", "G"],
+        image: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+        id: 2,
+        name: "Blusa Elegante Sedosa Rosa",
+        price: 119.00,
+        category: "Blusas & Tops",
+        sizes: ["P", "M"],
+        image: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+        id: 3,
+        name: "Conjunto Alfaiataria Rose",
+        price: 249.90,
+        category: "Conjuntos",
+        sizes: ["M", "G"],
+        image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+        id: 4,
+        name: "Saia Plissada Rosa Bebê",
+        price: 139.90,
+        category: "Calças & Saias",
+        sizes: ["P", "M", "G"],
+        image: "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?auto=format&fit=crop&q=80&w=600"
+    }
+];
+
+// ESTADO DA APLICAÇÃO
+let products = JSON.parse(localStorage.getItem('bella_products')) || initialProducts;
+let cart = JSON.parse(localStorage.getItem('bella_cart')) || [];
+let storePhone = localStorage.getItem('bella_phone') || "5511999999999"; 
+let selectedCategory = 'todos';
+let uploadedBase64Image = "";
+
+// INICIALIZAÇÃO
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('storePhone').value = storePhone;
+    renderProducts();
+    updateCartUI();
+    renderAdminProductsList();
+});
+
+// ESCUTAR ALTERAÇÕES NO NÚMERO DO WHATSAPP
+document.getElementById('storePhone')?.addEventListener('change', (e) => {
+    storePhone = e.target.value.replace(/\D/g, '');
+    localStorage.setItem('bella_phone', storePhone);
+});
+
+// RENDERIZAR VITRINE DE PRODUTOS
+function renderProducts() {
+    const grid = document.getElementById('productsGrid');
+    grid.innerHTML = '';
+
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+    const filtered = products.filter(product => {
+        const matchesCategory = selectedCategory === 'todos' || product.category === selectedCategory;
+        const matchesSearch = product.name.toLowerCase().includes(searchTerm);
+        return matchesCategory && matchesSearch;
+    });
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Nenhum produto encontrado.</p>`;
+        return;
+    }
+
+    filtered.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+
+        const sizesHtml = product.sizes.map((s, idx) => 
+            `<span class="size-option ${idx === 0 ? 'selected' : ''}" onclick="selectSize(this)">${s}</span>`
+        ).join('');
+
+        card.innerHTML = `
+            <div class="product-img-box">
+                <span class="product-badge">${product.category}</span>
+                <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x400?text=Sem+Foto'">
+            </div>
+            <div class="product-info">
+                <h3 class="product-title">${product.name}</h3>
+                <div class="product-price">R$ ${product.price.toFixed(2).replace('.', ',')}</div>
+                <div class="product-sizes">
+                    <small style="margin-right: 4px; color: var(--text-muted);">Tam:</small> ${sizesHtml}
+                </div>
+                <div class="product-actions">
+                    <button class="btn-add-cart" onclick="addToCart(${product.id}, this)">
+                        <i class="fa-solid fa-bag-shopping"></i> Sacola
+                    </button>
+                    <button class="btn-direct-wa" title="Perguntar/Comprar via WhatsApp" onclick="buySingleDirect(${product.id}, this)">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+// SELEÇÃO DE TAMANHO NOS CARDS
+function selectSize(element) {
+    const parent = element.parentElement;
+    parent.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('selected'));
+    element.classList.add('selected');
+}
+
+// FILTRAR POR CATEGORIA
+function filterCategory(cat) {
+    selectedCategory = cat;
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText.trim() === cat || (cat === 'todos' && btn.innerText.trim() === 'Todos'));
+    });
+    renderProducts();
+}
+
+// FILTRAR POR BUSCA
+function filterProducts() {
+    renderProducts();
+}
+
+// ADICIONAR À SACOLA
+function addToCart(productId, buttonEl) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    // Pega o tamanho selecionado no card
+    const card = buttonEl.closest('.product-card');
+    const selectedSizeEl = card.querySelector('.size-option.selected');
+    const selectedSize = selectedSizeEl ? selectedSizeEl.innerText : (product.sizes[0] || 'U');
+
+    const cartItemIndex = cart.findIndex(item => item.id === productId && item.selectedSize === selectedSize);
+
+    if (cartItemIndex > -1) {
+        cart[cartItemIndex].quantity += 1;
+    } else {
+        cart.push({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            selectedSize: selectedSize,
+            quantity: 1
+        });
+    }
+
+    saveCart();
+    updateCartUI();
+    toggleCart(true); // Abre a sacola automaticamente ao adicionar
+}
+
+// ALTERAR QUANTIDADE NA SACOLA
+function updateCartQty(index, change) {
+    cart[index].quantity += change;
+    if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
+    }
+    saveCart();
+    updateCartUI();
+}
+
+// ATUALIZAR INTERFACE DA SACOLA
+function updateCartUI() {
+    const cartBody = document.getElementById('cartBody');
+    const cartBadge = document.getElementById('cartBadge');
+    const cartTotal = document.getElementById('cartTotal');
+
+    const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+    const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+    cartBadge.innerText = totalItems;
+    cartTotal.innerText = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+
+    if (cart.length === 0) {
+        cartBody.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); margin-top: 50px;">
+                <i class="fa-solid fa-bag-shopping" style="font-size: 3rem; color: var(--pink-soft); margin-bottom: 10px;"></i>
+                <p>Sua sacola está vazia.</p>
+            </div>
+        `;
+        return;
+    }
+
+    cartBody.innerHTML = cart.map((item, idx) => `
+        <div class="cart-item">
+            <img src="${item.image}" class="cart-item-img" alt="${item.name}">
+            <div class="cart-item-details">
+                <div class="cart-item-title">${item.name}</div>
+                <div class="cart-item-size">Tamanho: <strong>${item.selectedSize}</strong></div>
+                <div class="cart-item-price">R$ ${item.price.toFixed(2).replace('.', ',')}</div>
+                <div class="cart-item-qty">
+                    <button class="qty-btn" onclick="updateCartQty(${idx}, -1)">-</button>
+                    <span>${item.quantity}</span>
+                    <button class="qty-btn" onclick="updateCartQty(${idx}, 1)">+</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ABRIR/FECHAR SACOLA
+function toggleCart(forceOpen = false) {
+    const overlay = document.getElementById('cartOverlay');
+    const drawer = document.getElementById('cartDrawer');
+
+    if (forceOpen) {
+        overlay.classList.add('active');
+        drawer.classList.add('active');
+    } else {
+        overlay.classList.toggle('active');
+        drawer.classList.toggle('active');
+    }
+}
+
+// SALVAR SACOLA NO LOCALSTORAGE
+function saveCart() {
+    localStorage.setItem('bella_cart', JSON.stringify(cart));
+}
+
+// FINALIZAR PEDIDO COMPLETO VIA WHATSAPP
+function checkoutCart() {
+    if (cart.length === 0) {
+        alert("Sua sacola está vazia!");
+        return;
+    }
+
+    const name = document.getElementById('clientName').value.trim();
+    const address = document.getElementById('clientAddress').value.trim();
+
+    if (!name) {
+        alert("Por favor, informe seu nome antes de finalizar.");
+        return;
+    }
+
+    let message = `Olá! Gostaria de fazer um pedido:\n\n`;
+    message += `👤 *Cliente:* ${name}\n`;
+    if (address) message += `📍 *Endereço:* ${address}\n`;
+    message += `------------------------------------\n`;
+    message += `🛍️ *ITENS DO PEDIDO:*\n`;
+
+    let total = 0;
+    cart.forEach(item => {
+        const subtotal = item.price * item.quantity;
+        total += subtotal;
+        message += `- ${item.quantity}x *${item.name}* (Tam: ${item.selectedSize}) - R$ ${subtotal.toFixed(2).replace('.', ',')}\n`;
+    });
+
+    message += `------------------------------------\n`;
+    message += `💰 *TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}\n\n`;
+    message += `Aguardo a confirmação da disponibilidade e dados para pagamento!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
+}
+
+// ENVIAR UM ÚNICO PRODUTO DIRETO PARA O WHATSAPP
+function buySingleDirect(productId, buttonEl) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const card = buttonEl.closest('.product-card');
+    const selectedSizeEl = card.querySelector('.size-option.selected');
+    const selectedSize = selectedSizeEl ? selectedSizeEl.innerText : (product.sizes[0] || 'U');
+
+    let message = `Olá! Tenho interesse no seguinte produto:\n\n`;
+    message += `👗 *Produto:* ${product.name}\n`;
+    message += `📏 *Tamanho Escolhido:* ${selectedSize}\n`;
+    message += `💵 *Preço:* R$ ${product.price.toFixed(2).replace('.', ',')}\n\n`;
+    message += `Ainda está disponível?`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
+}
+
+// MODAL ADMINISTRATIVO
+function openAdminModal() {
+    document.getElementById('adminModal').classList.add('active');
+}
+
+function closeAdminModal() {
+    document.getElementById('adminModal').classList.remove('active');
+}
+
+// CONVERTER IMAGEM DO COMPUTADOR PARA BASE64
+function convertImageToBase64(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            uploadedBase64Image = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// CADASTRAR NOVO PRODUTO VIA SISTEMA ADMIN
+function handleProductSubmit(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('prodName').value;
+    const price = parseFloat(document.getElementById('prodPrice').value);
+    const category = document.getElementById('prodCategory').value;
+    const sizesStr = document.getElementById('prodSizes').value;
+    const imageUrl = document.getElementById('prodImage').value;
+
+    const sizes = sizesStr.split(',').map(s => s.trim()).filter(s => s !== '');
+    const finalImage = uploadedBase64Image || imageUrl || 'https://via.placeholder.com/300x400?text=Bella+Rosa';
+
+    const newProduct = {
+        id: Date.now(),
+        name: name,
+        price: price,
+        category: category,
+        sizes: sizes.length > 0 ? sizes : ["U"],
+        image: finalImage
+    };
+
+    products.unshift(newProduct);
+    localStorage.setItem('bella_products', JSON.stringify(products));
+
+    renderProducts();
+    renderAdminProductsList();
+
+    // Resetar Formulário
+    document.getElementById('productForm').reset();
+    uploadedBase64Image = "";
+    alert('Produto cadastrado com sucesso!');
+}
+
+// DELETAR PRODUTO NO ADMIN
+function deleteProduct(id) {
+    if (confirm("Tem certeza que deseja remover este produto da loja?")) {
+        products = products.filter(p => p.id !== id);
+        localStorage.setItem('bella_products', JSON.stringify(products));
+        renderProducts();
+        renderAdminProductsList();
+    }
+}
+
+// RENDERIZAR LISTA DE REMOÇÃO DE PRODUTOS NO ADMIN
+function renderAdminProductsList() {
+    const list = document.getElementById('adminProductList');
+    list.innerHTML = '';
+
+    products.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'admin-product-item';
+        item.innerHTML = `
+            <span><strong>${p.name}</strong> - R$ ${p.price.toFixed(2)}</span>
+            <button class="btn-delete" onclick="deleteProduct(${p.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
+        `;
+        list.appendChild(item);
+    });
+}

@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boutique Rosa - Moda Feminina</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rosebrand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                        },
+                        softpink: '#fdf2f4',
+                        accentpink: '#db2777'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fonte Google Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #fdf2f4; }
+        ::-webkit-scrollbar-thumb { background: #fda4af; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #fb7185; }
+    </style>
+</head>
+<body class="bg-softpink text-gray-800 min-h-screen flex flex-col">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-rosebrand-600 text-white px-5 py-3 rounded-xl shadow-lg transition-all transform translate-y-20 opacity-0 z-50 flex items-center space-x-2">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-message">Item adicionado com sucesso!</span>
+    </div>
+
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 bg-white/90 backdrop-blur-md border-b border-rosebrand-100 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="showSection('shop')">
+                <div class="w-10 h-10 rounded-full bg-rosebrand-500 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-rosebrand-700">Boutique Rosa</h1>
+                    <p class="text-xs text-rosebrand-400 font-medium">MODA FEMININA & ESTILO</p>
+                </div>
+            </div>
+
+            <!-- Navigation Actions -->
+            <div class="flex items-center space-x-3">
+                <button onclick="showSection('shop')" class="px-4 py-2 rounded-full text-sm font-semibold text-rosebrand-700 hover:bg-rosebrand-50 transition">
+                    <i class="fa-solid fa-store mr-1"></i> Loja
+                </button>
+                <button onclick="openAdminModal()" class="px-4 py-2 rounded-full text-sm font-semibold bg-rosebrand-100 text-rosebrand-700 hover:bg-rosebrand-200 transition">
+                    <i class="fa-solid fa-sliders mr-1"></i> Painel Admin
+                </button>
+                
+                <!-- Sacola Button -->
+                <button onclick="toggleBagModal()" class="relative p-3 rounded-full bg-rosebrand-500 text-white hover:bg-rosebrand-600 transition shadow-md">
+                    <i class="fa-solid fa-bag-shopping text-lg"></i>
+                    <span id="bag-count" class="absolute -top-1 -right-1 bg-white text-rosebrand-600 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-rosebrand-500">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Banner Principal -->
+        <div class="mb-10 rounded-3xl bg-gradient-to-r from-rosebrand-400 via-rosebrand-300 to-rosebrand-200 p-8 md:p-12 text-white shadow-xl relative overflow-hidden">
+            <div class="relative z-10 max-w-lg">
+                <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider text-rosebrand-900">Nova Coleção</span>
+                <h2 class="text-3xl md:text-5xl font-extrabold mt-3 leading-tight text-rosebrand-900">Realce sua Beleza com Nossos Looks</h2>
+                <p class="mt-3 text-rosebrand-900/80 text-sm md:text-base">Monte seu pedido ou tire dúvidas diretamente no nosso WhatsApp de forma simples e rápida.</p>
+            </div>
+            <i class="fa-solid fa-gem absolute -right-10 -bottom-10 text-9xl text-white/10 pointer-events-none"></i>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+            <!-- Categorias -->
+            <div class="flex flex-wrap gap-2 w-full md:w-auto" id="category-filters">
+                <button onclick="filterCategory('todas')" class="cat-btn active border border-rosebrand-300 bg-rosebrand-500 text-white px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">Todas</button>
+                <button onclick="filterCategory('Vestidos')" class="cat-btn border border-rosebrand-200 bg-white text-rosebrand-700 hover:bg-rosebrand-50 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">Vestidos</button>
+                <button onclick="filterCategory('Blusas')" class="cat-btn border border-rosebrand-200 bg-white text-rosebrand-700 hover:bg-rosebrand-50 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">Blusas</button>
+                <button onclick="filterCategory('Calças')" class="cat-btn border border-rosebrand-200 bg-white text-rosebrand-700 hover:bg-rosebrand-50 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">Calças</button>
+                <button onclick="filterCategory('Saias')" class="cat-btn border border-rosebrand-200 bg-white text-rosebrand-700 hover:bg-rosebrand-50 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">Saias</button>
+                <button onclick="filterCategory('Conjuntos')" class="cat-btn border border-rosebrand-200 bg-white text-rosebrand-700 hover:bg-rosebrand-50 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm">Conjuntos</button>
+            </div>
+
+            <!-- Busca -->
+            <div class="relative w-full md:w-72">
+                <input type="text" id="search-input" oninput="handleSearch()" placeholder="Buscar peças..." class="w-full pl-10 pr-4 py-2 bg-white border border-rosebrand-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-rosebrand-400">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-rosebrand-300 text-sm"></i>
+            </div>
+        </div>
+
+        <!-- Grade de Produtos -->
+        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Produtos serão injetados via JS -->
+        </div>
+
+        <!-- Estado Vazio para Busca/Filtro -->
+        <div id="empty-state" class="hidden text-center py-16">
+            <i class="fa-solid fa-shirt text-5xl text-rosebrand-200 mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-700">Nenhum produto encontrado</h3>
+            <p class="text-gray-500 text-sm mt-1">Tente mudar o termo da busca ou filtro de categoria.</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-rosebrand-100 py-8 mt-12 text-center text-xs text-rosebrand-400">
+        <p>&copy; 2026 Boutique Rosa - Todos os direitos reservados.</p>
+        <p class="mt-1">Moda feminina entregue na sua casa com carinho.</p>
+    </footer>
+
+    <!-- MODAL DO PAINEL ADMIN (CADASTRO DE PRODUTOS) -->
+    <div id="admin-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
+            <button onclick="closeAdminModal()" class="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-500 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h2 class="text-2xl font-bold text-rosebrand-700 mb-1">Painel Administrativo</h2>
+            <p class="text-xs text-gray-500 mb-6">Cadastre novos produtos e gerencie o WhatsApp da sua loja.</p>
+
+            <!-- WhatsApp Config -->
+            <div class="bg-rosebrand-50 p-4 rounded-2xl mb-6 border border-rosebrand-100">
+                <label class="block text-xs font-bold text-rosebrand-800 uppercase mb-2">Número do WhatsApp da Loja (com DDD, somente números)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="store-whatsapp" placeholder="Ex: 5511999998888" class="flex-grow px-4 py-2 border border-rosebrand-200 rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                    <button onclick="saveWhatsAppNumber()" class="bg-rosebrand-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-rosebrand-600 transition">Salvar</button>
+                </div>
+            </div>
+
+            <!-- Form de Cadastro de Produto -->
+            <form id="product-form" onsubmit="handleAddProduct(event)" class="space-y-4">
+                <h3 class="text-lg font-bold text-gray-800 border-b pb-2">Cadastrar Novo Produto</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Nome do Produto</label>
+                        <input type="text" id="prod-name" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Categoria</label>
+                        <select id="prod-category" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                            <option value="Vestidos">Vestidos</option>
+                            <option value="Blusas">Blusas</option>
+                            <option value="Calças">Calças</option>
+                            <option value="Saias">Saias</option>
+                            <option value="Conjuntos">Conjuntos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Preço (R$)</label>
+                        <input type="number" step="0.01" id="prod-price" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Tamanhos Disponíveis</label>
+                        <div class="flex space-x-3 pt-2">
+                            <label class="inline-flex items-center text-sm"><input type="checkbox" name="sizes" value="P" checked class="accent-rosebrand-500 mr-1"> P</label>
+                            <label class="inline-flex items-center text-sm"><input type="checkbox" name="sizes" value="M" checked class="accent-rosebrand-500 mr-1"> M</label>
+                            <label class="inline-flex items-center text-sm"><input type="checkbox" name="sizes" value="G" checked class="accent-rosebrand-500 mr-1"> G</label>
+                            <label class="inline-flex items-center text-sm"><input type="checkbox" name="sizes" value="GG" class="accent-rosebrand-500 mr-1"> GG</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Imagem (URL ou Arquivo) -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Imagem do Produto</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input type="text" id="prod-img-url" placeholder="URL da imagem (http://...)" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                        <input type="file" id="prod-img-file" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-rosebrand-100 file:text-rosebrand-700 hover:file:bg-rosebrand-200">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Descrição Breve</label>
+                    <textarea id="prod-desc" rows="2" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t">
+                    <button type="button" onclick="restoreDemoProducts()" class="text-xs text-rosebrand-600 hover:underline">Restaurar Produtos Demonstração</button>
+                    <button type="submit" class="bg-rosebrand-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-rosebrand-600 transition shadow-md">
+                        Cadastrar Produto
+                    </button>
+                </div>
+            </form>
+
+            <!-- Lista de Produtos Cadastrados (para deletar) -->
+            <div class="mt-8 border-t pt-4">
+                <h3 class="text-md font-bold text-gray-800 mb-3">Produtos Cadastrados</h3>
+                <div id="admin-product-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <!-- Lista injetada dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRAWER / MODAL DA SACOLA DE COMPRAS -->
+    <div id="bag-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end opacity-0 pointer-events-none transition-opacity duration-300">
+        <div id="bag-container" class="bg-white w-full max-w-md h-full flex flex-col transform translate-x-full transition-transform duration-300 shadow-2xl">
+            <!-- Header Sacola -->
+            <div class="p-4 border-b flex items-center justify-between bg-rosebrand-50">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-bag-shopping text-rosebrand-600 text-xl"></i>
+                    <h3 class="font-bold text-rosebrand-800">Sua Sacola de Compras</h3>
+                </div>
+                <button onclick="toggleBagModal()" class="w-8 h-8 bg-white hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-500 shadow-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Lista de Itens -->
+            <div id="bag-items" class="flex-grow overflow-y-auto p-4 space-y-4">
+                <!-- Itens da sacola serão renderizados via JS -->
+            </div>
+
+            <!-- Formulário & Checkout -->
+            <div class="p-4 border-t bg-gray-50 space-y-3">
+                <div class="space-y-2">
+                    <input type="text" id="checkout-name" placeholder="Seu Nome Completo *" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                    <input type="text" id="checkout-address" placeholder="Endereço de Entrega *" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                    <select id="checkout-payment" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-rosebrand-400 outline-none">
+                        <option value="Pix">Forma de Pagamento: Pix</option>
+                        <option value="Cartão de Crédito">Forma de Pagamento: Cartão de Crédito</option>
+                        <option value="Dinheiro">Forma de Pagamento: Dinheiro</option>
+                    </select>
+                </div>
+
+                <!-- Totais -->
+                <div class="pt-2 border-t border-gray-200">
+                    <div class="flex justify-between text-base font-bold text-gray-800">
+                        <span>Total:</span>
+                        <span id="bag-total" class="text-rosebrand-600">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Botão Checkout WhatsApp -->
+                <button onclick="sendBagToWhatsApp()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-2xl flex items-center justify-center space-x-2 transition shadow-lg">
+                    <i class="fa-brands fa-whatsapp text-2xl"></i>
+                    <span>Enviar Pedido via WhatsApp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT DA APLICAÇÃO -->
+    <script>
+        // --- ESTADO INICIAL DA LOJA ---
+        let defaultProducts = [
+            {
+                id: 1,
+                name: 'Vestido Floral Primavera',
+                category: 'Vestidos',
+                price: 189.90,
+                sizes: ['P', 'M', 'G'],
+                image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=500&auto=format&fit=crop&q=60',
+                description: 'Vestido leve com estampa floral, perfeito para dias ensolarados.'
+            },
+            {
+                id: 2,
+                name: 'Blusa Seda Rosa Quartz',
+                category: 'Blusas',
+                price: 119.00,
+                sizes: ['P', 'M', 'G', 'GG'],
+                image: 'https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=500&auto=format&fit=crop&q=60',
+                description: 'Blusa elegante em tecido acetinado de toque suave.'
+            },
+            {
+                id: 3,
+                name: 'Calça Alfaiataria Nude',
+                category: 'Calças',
+                price: 219.90,
+                sizes: ['M', 'G'],
+                image: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=500&auto=format&fit=crop&q=60',
+                description: 'Corte moderno e caimento impecável para produções sofisticadas.'
+            },
+            {
+                id: 4,
+                name: 'Conjunto Tweed Chic',
+                category: 'Conjuntos',
+                price: 299.90,
+                sizes: ['P', 'M'],
+                image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&auto=format&fit=crop&q=60',
+                description: 'Conjunto de saia e cropped estruturado para ocasiões especiais.'
+            }
+        ];
+
+        let products = JSON.parse(localStorage.getItem('boutique_products')) || defaultProducts;
+        let cart = JSON.parse(localStorage.getItem('boutique_cart')) || [];
+        let whatsappNumber = localStorage.getItem('boutique_whatsapp') || '5511999999999';
+        let currentCategory = 'todas';
+
+        // --- INICIALIZAÇÃO ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts();
+            updateCartUI();
+            document.getElementById('store-whatsapp').value = whatsappNumber;
+        });
+
+        // --- MANIPULAÇÃO DE DADOS LOCALSTORAGE ---
+        function saveProducts() {
+            localStorage.setItem('boutique_products', JSON.stringify(products));
+            renderProducts();
+            renderAdminProductList();
+        }
+
+        function saveCart() {
+            localStorage.setItem('boutique_cart', JSON.stringify(cart));
+            updateCartUI();
+        }
+
+        function saveWhatsAppNumber() {
+            const input = document.getElementById('store-whatsapp').value.replace(/\D/g, '');
+            if(input.length < 10) {
+                alert('Por favor insira um número válido com DDD');
+                return;
+            }
+            whatsappNumber = input;
+            localStorage.setItem('boutique_whatsapp', whatsappNumber);
+            showToast('Número do WhatsApp atualizado!');
+        }
+
+        function restoreDemoProducts() {
+            products = [...defaultProducts];
+            saveProducts();
+            showToast('Produtos de demonstração restaurados!');
+        }
+
+        // --- RENDERIZAÇÃO DA VITRINE ---
+        function renderProducts() {
+            const grid = document.getElementById('product-grid');
+            const emptyState = document.getElementById('empty-state');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            const filtered = products.filter(p => {
+                const matchesCategory = currentCategory === 'todas' || p.category === currentCategory;
+                const matchesSearch = p.name.toLowerCase().includes(searchTerm) || p.description.toLowerCase().includes(searchTerm);
+                return matchesCategory && matchesSearch;
+            });
+
+            grid.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filtered.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-rosebrand-100 flex flex-col group";
+
+                    const sizesHTML = p.sizes.map((s, idx) => `
+                        <label class="cursor-pointer">
+                            <input type="radio" name="size-${p.id}" value="${s}" ${idx === 0 ? 'checked' : ''} class="hidden peer">
+                            <span class="w-7 h-7 text-xs flex items-center justify-center rounded-lg border border-rosebrand-200 text-rosebrand-700 peer-checked:bg-rosebrand-500 peer-checked:text-white peer-checked:border-rosebrand-500 transition">
+                                ${s}
+                            </span>
+                        </label>
+                    `).join('');
+
+                    card.innerHTML = `
+                        <div class="relative overflow-hidden aspect-[4/5] bg-rosebrand-50">
+                            <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/400x500/fda4af/ffffff?text=Boutique+Rosa'">
+                            <span class="absolute top-3 left-3 bg-white/80 backdrop-blur-md text-rosebrand-700 text-xs font-semibold px-3 py-1 rounded-full">
+                                ${p.category}
+                            </span>
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <h3 class="font-bold text-gray-800 text-base group-hover:text-rosebrand-600 transition">${p.name}</h3>
+                            <p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.description}</p>
+                            
+                            <div class="mt-4">
+                                <span class="text-xs text-gray-400 block mb-1">Selecione o Tamanho:</span>
+                                <div class="flex space-x-1.5" id="sizes-container-${p.id}">
+                                    ${sizesHTML}
+                                </div>
+                            </div>
+
+                            <div class="mt-auto pt-4 flex items-end justify-between">
+                                <div>
+                                    <span class="text-xs text-gray-400 block">Preço</span>
+                                    <span class="text-lg font-extrabold text-rosebrand-700">R$ ${p.price.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                            </div>
+
+                            <!-- Botões de Ação -->
+                            <div class="grid grid-cols-2 gap-2 mt-4">
+                                <button onclick="buySingleProduct(${p.id})" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-2.5 px-2 rounded-xl flex items-center justify-center space-x-1 transition shadow-sm">
+                                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                                    <span>Comprar</span>
+                                </button>
+                                <button onclick="addToBag(${p.id})" class="bg-rosebrand-500 hover:bg-rosebrand-600 text-white text-xs font-bold py-2.5 px-2 rounded-xl flex items-center justify-center space-x-1 transition shadow-sm">
+                                    <i class="fa-solid fa-bag-shopping text-sm"></i>
+                                    <span>+ Sacola</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        // --- FILTROS DE BUSCA E CATEGORIA ---
+        function filterCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if(btn.innerText.toLowerCase() === category.toLowerCase() || (category === 'todas' && btn.innerText === 'Todas')) {
+                    btn.className = "cat-btn active border border-rosebrand-300 bg-rosebrand-500 text-white px-4 py-2 rounded-full text-sm font-medium transition shadow-sm";
+                } else {
+                    btn.className = "cat-btn border border-rosebrand-200 bg-white text-rosebrand-700 hover:bg-rosebrand-50 px-4 py-2 rounded-full text-sm font-medium transition shadow-sm";
+                }
+            });
+            renderProducts();
+        }
+
+        function handleSearch() {
+            renderProducts();
+        }
+
+        // --- COMPRA DIRETA VIA WHATSAPP PARA ITEM ÚNICO ---
+        function buySingleProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const selectedSizeRadio = document.querySelector(`input[name="size-${productId}"]:checked`);
+            const selectedSize = selectedSizeRadio ? selectedSizeRadio.value : product.sizes[0];
+
+            const message = `Olá! Tenho interesse no produto:\n\n*${product.name}*\n• Tamanho: ${selectedSize}\n• Preço: R$ ${product.price.toFixed(2).replace('.', ',')}\n\nPode me passar mais informações?`;
+            const encoded = encodeURIComponent(message);
+            
+            window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, '_blank');
+        }
+
+        // --- GERENCIAMENTO DA SACOLA (CARRINHO) ---
+        function addToBag(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const selectedSizeRadio = document.querySelector(`input[name="size-${productId}"]:checked`);
+            const selectedSize = selectedSizeRadio ? selectedSizeRadio.value : product.sizes[0];
+
+            // Verifica se o item já existe na sacola com o mesmo tamanho
+            const existingIndex = cart.findIndex(item => item.id === productId && item.selectedSize === selectedSize);
+
+            if (existingIndex > -1) {
+                cart[existingIndex].quantity += 1;
+            } else {
+                cart.push({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: product.image,
+                    selectedSize: selectedSize,
+                    quantity: 1
+                });
+            }
+
+            saveCart();
+            showToast(`${product.name} (${selectedSize}) adicionado à sacola!`);
+        }
+
+        function updateCartQuantity(index, delta) {
+            cart[index].quantity += delta;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            saveCart();
+        }
+
+        function updateCartUI() {
+            const countElem = document.getElementById('bag-count');
+            const itemsContainer = document.getElementById('bag-items');
+            const totalElem = document.getElementById('bag-total');
+
+            const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+            countElem.innerText = totalItems;
+
+            itemsContainer.innerHTML = '';
+
+            if (cart.length === 0) {
+                itemsContainer.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fa-solid fa-basket-shopping text-4xl mb-2 text-rosebrand-200"></i>
+                        <p class="text-sm">Sua sacola está vazia.</p>
+                    </div>
+                `;
+                totalElem.innerText = 'R$ 0,00';
+                return;
+            }
+
+            let grandTotal = 0;
+
+            cart.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                grandTotal += itemTotal;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = "flex items-center space-x-3 bg-rosebrand-50/50 p-3 rounded-2xl border border-rosebrand-100";
+                itemDiv.innerHTML = `
+                    <img src="${item.image}" alt="${item.name}" class="w-16 h-20 object-cover rounded-xl bg-white">
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${item.name}</h4>
+                        <span class="text-xs text-rosebrand-600 bg-rosebrand-100 px-2 py-0.5 rounded-md inline-block mt-1 font-semibold">Tamanho: ${item.selectedSize}</span>
+                        <div class="text-xs font-extrabold text-gray-700 mt-1">R$ ${item.price.toFixed(2).replace('.', ',')}</div>
+                    </div>
+                    <div class="flex flex-col items-end space-y-2">
+                        <div class="flex items-center space-x-1 bg-white border rounded-lg px-2 py-1">
+                            <button onclick="updateCartQuantity(${index}, -1)" class="text-gray-500 hover:text-rosebrand-600 text-xs font-bold px-1">-</button>
+                            <span class="text-xs font-bold w-4 text-center">${item.quantity}</span>
+                            <button onclick="updateCartQuantity(${index}, 1)" class="text-gray-500 hover:text-rosebrand-600 text-xs font-bold px-1">+</button>
+                        </div>
+                        <button onclick="updateCartQuantity(${index}, -${item.quantity})" class="text-xs text-red-400 hover:text-red-600">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                itemsContainer.appendChild(itemDiv);
+            });
+
+            totalElem.innerText = `R$ ${grandTotal.toFixed(2).replace('.', ',')}`;
+        }
+
+        // --- FECHAMENTO DE PEDIDO SACOLA VIA WHATSAPP ---
+        function sendBagToWhatsApp() {
+            if (cart.length === 0) {
+                alert('Adicione pelo menos um produto na sua sacola antes de enviar.');
+                return;
+            }
+
+            const name = document.getElementById('checkout-name').value.trim();
+            const address = document.getElementById('checkout-address').value.trim();
+            const payment = document.getElementById('checkout-payment').value;
+
+            if (!name || !address) {
+                alert('Por favor, preencha seu nome e endereço de entrega.');
+                return;
+            }
+
+            let msg = `🛍️ *NOVO PEDIDO - BOUTIQUE ROSA*\n\n`;
+            msg += `👤 *Cliente:* ${name}\n`;
+            msg += `📍 *Endereço:* ${address}\n`;
+            msg += `💳 *Pagamento:* ${payment}\n`;
+            msg += `-----------------------------------\n\n`;
+            msg += `📦 *ITENS DA SACOLA:*\n`;
+
+            let grandTotal = 0;
+            cart.forEach((item, idx) => {
+                const subtotal = item.price * item.quantity;
+                grandTotal += subtotal;
+                msg += `${idx + 1}. *${item.name}*\n   • Tam: ${item.selectedSize} | Qtd: ${item.quantity}x\n   • Valor: R$ ${subtotal.toFixed(2).replace('.', ',')}\n\n`;
+            });
+
+            msg += `-----------------------------------\n`;
+            msg += `💰 *TOTAL DO PEDIDO: R$ ${grandTotal.toFixed(2).replace('.', ',')}*`;
+
+            const encoded = encodeURIComponent(msg);
+            window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, '_blank');
+        }
+
+        // --- SISTEMA ADMIN / CADASTRO DE PRODUTOS ---
+        function openAdminModal() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+            renderAdminProductList();
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        async function handleAddProduct(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('prod-name').value.trim();
+            const category = document.getElementById('prod-category').value;
+            const price = parseFloat(document.getElementById('prod-price').value);
+            const desc = document.getElementById('prod-desc').value.trim() || 'Sem descrição.';
+
+            // Pega os tamanhos selecionados
+            const sizeCheckboxes = document.querySelectorAll('input[name="sizes"]:checked');
+            const sizes = Array.from(sizeCheckboxes).map(cb => cb.value);
+
+            if (sizes.length === 0) {
+                alert('Selecione pelo menos um tamanho para o produto.');
+                return;
+            }
+
+            // Trata a Imagem (URL ou File FileReader)
+            const urlInput = document.getElementById('prod-img-url').value.trim();
+            const fileInput = document.getElementById('prod-img-file').files[0];
+
+            let imageUrl = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&auto=format&fit=crop&q=60';
+
+            if (fileInput) {
+                imageUrl = await readFileAsBase64(fileInput);
+            } else if (urlInput) {
+                imageUrl = urlInput;
+            }
+
+            const newProduct = {
+                id: Date.now(),
+                name,
+                category,
+                price,
+                sizes,
+                image: imageUrl,
+                description: desc
+            };
+
+            products.unshift(newProduct);
+            saveProducts();
+
+            // Limpa o form
+            document.getElementById('product-form').reset();
+            showToast('Produto cadastrado com sucesso!');
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function deleteProduct(id) {
+            if (confirm('Tem certeza que deseja excluir este produto?')) {
+                products = products.filter(p => p.id !== id);
+                saveProducts();
+                showToast('Produto removido.');
+            }
+        }
+
+        function renderAdminProductList() {
+            const list = document.getElementById('admin-product-list');
+            list.innerHTML = '';
+
+            products.forEach(p => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 bg-gray-50 border rounded-xl text-xs";
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <img src="${p.image}" class="w-8 h-8 rounded-lg object-cover">
+                        <div>
+                            <span class="font-bold text-gray-800">${p.name}</span>
+                            <span class="text-gray-400 block">R$ ${p.price.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700 px-2 py-1 font-bold">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // --- INTERFASE & UTILS ---
+        function toggleBagModal() {
+            const modal = document.getElementById('bag-modal');
+            const container = document.getElementById('bag-container');
+
+            if (modal.classList.contains('pointer-events-none')) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                container.classList.remove('translate-x-full');
+            } else {
+                container.classList.add('translate-x-full');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toast-message');
+            msg.innerText = message;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        function showSection(section) {
+            if(section === 'shop') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    </script>
+</body>
+</html>
