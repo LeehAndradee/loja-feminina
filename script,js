@@ -1,7 +1,7 @@
-// SENHA DO PAINEL ADMINISTRATIVO
+// SENHA DO PAINEL ADMIN
 const ADMIN_PASSWORD = "1234";
 
-// PRODUTOS INICIAIS DA RP MODA FEMININA
+// PRODUTOS PADRÃO RP MODA FEMININA
 const initialProducts = [
     {
         id: 1,
@@ -37,52 +37,32 @@ const initialProducts = [
     }
 ];
 
-// ESTADO DA APLICAÇÃO
-let products = JSON.parse(localStorage.getItem('rp_products')) || initialProducts;
+// CARREGAMENTO DOS DADOS DADOS LOCAIS
+let products = JSON.parse(localStorage.getItem('rp_products'));
+if (!products || !Array.isArray(products) || products.length === 0) {
+    products = initialProducts;
+    localStorage.setItem('rp_products', JSON.stringify(products));
+}
+
 let cart = JSON.parse(localStorage.getItem('rp_cart')) || [];
 let storePhone = localStorage.getItem('rp_phone') || "5535999888058"; 
 let selectedCategory = 'todos';
 let uploadedBase64Image = "";
 let isAdminAuthenticated = false;
 
-// INICIALIZAÇÃO
-document.addEventListener('DOMContentLoaded', () => {
+// INICIALIZAÇÃO AUTOMÁTICA
+window.onload = function() {
     const phoneInput = document.getElementById('storePhone');
-    if(phoneInput) phoneInput.value = storePhone;
+    if (phoneInput) phoneInput.value = storePhone;
     renderProducts();
     updateCartUI();
     renderAdminProductsList();
-});
+};
 
-// ESCUTAR MUDANÇA NO TELEFONE DA LOJA
-document.getElementById('storePhone')?.addEventListener('change', (e) => {
-    storePhone = e.target.value.replace(/\D/g, '');
-    localStorage.setItem('rp_phone', storePhone);
-});
-
-// AUTENTICAÇÃO DO ADMIN
-function openAdminModal() {
-    if (!isAdminAuthenticated) {
-        const passwordInput = prompt("Digite a senha do Painel Administrativo:");
-        if (passwordInput === ADMIN_PASSWORD) {
-            isAdminAuthenticated = true;
-            document.getElementById('adminModal').classList.add('active');
-        } else if (passwordInput !== null) {
-            alert("Senha incorreta! Acesso negado.");
-        }
-    } else {
-        document.getElementById('adminModal').classList.add('active');
-    }
-}
-
-function closeAdminModal() {
-    document.getElementById('adminModal').classList.remove('active');
-}
-
-// RENDERIZAR VITRINE
+// RENDERIZAR PRODUTOS NA VITRINE
 function renderProducts() {
     const grid = document.getElementById('productsGrid');
-    if(!grid) return;
+    if (!grid) return;
     grid.innerHTML = '';
 
     const searchInput = document.getElementById('searchInput');
@@ -95,7 +75,7 @@ function renderProducts() {
     });
 
     if (filtered.length === 0) {
-        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Nenhum produto encontrado.</p>`;
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #806069; padding: 40px;">Nenhum produto cadastrado ou encontrado.</p>';
         return;
     }
 
@@ -116,7 +96,7 @@ function renderProducts() {
                 <h3 class="product-title">${product.name}</h3>
                 <div class="product-price">R$ ${Number(product.price).toFixed(2).replace('.', ',')}</div>
                 <div class="product-sizes">
-                    <small style="margin-right: 4px; color: var(--text-muted);">Tam:</small> ${sizesHtml}
+                    <small style="margin-right: 4px; color: #806069;">Tam:</small> ${sizesHtml}
                 </div>
                 <div class="product-actions">
                     <button class="btn-add-cart" onclick="addToCart(${product.id}, this)">
@@ -132,6 +112,7 @@ function renderProducts() {
     });
 }
 
+// BOTÕES DE TAMANHO E FILTROS
 function selectSize(element) {
     const parent = element.parentElement;
     parent.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('selected'));
@@ -150,7 +131,21 @@ function filterProducts() {
     renderProducts();
 }
 
-// SACOLA DE COMPRAS
+// ABRIR/FECHAR SACOLA
+function toggleCart(forceOpen = false) {
+    const overlay = document.getElementById('cartOverlay');
+    const drawer = document.getElementById('cartDrawer');
+    if (!overlay || !drawer) return;
+
+    if (forceOpen) {
+        overlay.classList.add('active');
+        drawer.classList.add('active');
+    } else {
+        overlay.classList.toggle('active');
+        drawer.classList.toggle('active');
+    }
+}
+
 function addToCart(productId, buttonEl) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -174,17 +169,15 @@ function addToCart(productId, buttonEl) {
         });
     }
 
-    saveCart();
+    localStorage.setItem('rp_cart', JSON.stringify(cart));
     updateCartUI();
     toggleCart(true);
 }
 
 function updateCartQty(index, change) {
     cart[index].quantity += change;
-    if (cart[index].quantity <= 0) {
-        cart.splice(index, 1);
-    }
-    saveCart();
+    if (cart[index].quantity <= 0) cart.splice(index, 1);
+    localStorage.setItem('rp_cart', JSON.stringify(cart));
     updateCartUI();
 }
 
@@ -203,8 +196,8 @@ function updateCartUI() {
 
     if (cart.length === 0) {
         cartBody.innerHTML = `
-            <div style="text-align: center; color: var(--text-muted); margin-top: 50px;">
-                <i class="fa-solid fa-bag-shopping" style="font-size: 3rem; color: var(--pink-soft); margin-bottom: 10px;"></i>
+            <div style="text-align: center; color: #806069; margin-top: 50px;">
+                <i class="fa-solid fa-bag-shopping" style="font-size: 3rem; color: #f8dbdf; margin-bottom: 10px;"></i>
                 <p>Sua sacola está vazia.</p>
             </div>
         `;
@@ -228,29 +221,9 @@ function updateCartUI() {
     `).join('');
 }
 
-function toggleCart(forceOpen = false) {
-    const overlay = document.getElementById('cartOverlay');
-    const drawer = document.getElementById('cartDrawer');
-
-    if (forceOpen) {
-        overlay.classList.add('active');
-        drawer.classList.add('active');
-    } else {
-        overlay.classList.toggle('active');
-        drawer.classList.toggle('active');
-    }
-}
-
-function saveCart() {
-    localStorage.setItem('rp_cart', JSON.stringify(cart));
-}
-
-// FINALIZAR PEDIDO VIA WHATSAPP
+// CHECKOUT WHATSAPP
 function checkoutCart() {
-    if (cart.length === 0) {
-        alert("Sua sacola está vazia!");
-        return;
-    }
+    if (cart.length === 0) return alert("Sua sacola está vazia!");
 
     const nameInput = document.getElementById('clientName');
     const addressInput = document.getElementById('clientAddress');
@@ -258,16 +231,12 @@ function checkoutCart() {
     const name = nameInput ? nameInput.value.trim() : '';
     const address = addressInput ? addressInput.value.trim() : '';
 
-    if (!name) {
-        alert("Por favor, informe seu nome antes de enviar o pedido.");
-        return;
-    }
+    if (!name) return alert("Por favor, informe seu nome.");
 
     let message = `Olá, RP MODA FEMININA! Gostaria de fazer um pedido:\n\n`;
     message += `👤 *Cliente:* ${name}\n`;
     if (address) message += `📍 *Endereço:* ${address}\n`;
-    message += `------------------------------------\n`;
-    message += `🛍️ *ITENS DO PEDIDO:*\n`;
+    message += `------------------------------------\n🛍️ *ITENS DO PEDIDO:*\n`;
 
     let total = 0;
     cart.forEach(item => {
@@ -276,12 +245,10 @@ function checkoutCart() {
         message += `- ${item.quantity}x *${item.name}* (Tam: ${item.selectedSize}) - R$ ${subtotal.toFixed(2).replace('.', ',')}\n`;
     });
 
-    message += `------------------------------------\n`;
-    message += `💰 *TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}\n\n`;
-    message += `Aguardo a confirmação dos itens!`;
+    message += `------------------------------------\n💰 *TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}\n\n`;
+    message += `Aguardo a confirmação!`;
 
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
+    window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
 function buySingleDirect(productId, buttonEl) {
@@ -298,39 +265,52 @@ function buySingleDirect(productId, buttonEl) {
     message += `💵 *Preço:* R$ ${Number(product.price).toFixed(2).replace('.', ',')}\n\n`;
     message += `Está disponível?`;
 
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
+    window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-// FUNÇÃO PARA REDIMENSIONAR E COMPRIMIR IMAGEM (EVITA ESTOURAR O LOCALSTORAGE)
+// ABRIR/FECHAR ADMIN
+function openAdminModal() {
+    if (!isAdminAuthenticated) {
+        const passwordInput = prompt("Digite a senha do Painel Administrativo:");
+        if (passwordInput === ADMIN_PASSWORD) {
+            isAdminAuthenticated = true;
+            document.getElementById('adminModal').classList.add('active');
+        } else if (passwordInput !== null) {
+            alert("Senha incorreta!");
+        }
+    } else {
+        document.getElementById('adminModal').classList.add('active');
+    }
+}
+
+function closeAdminModal() {
+    document.getElementById('adminModal').classList.remove('active');
+}
+
+// CONVERTER E COMPRIMIR IMAGEM DO FORMULÁRIO
 function convertAndCompressImage(input) {
     if (input.files && input.files[0]) {
-        const file = input.files[0];
         const reader = new FileReader();
-
         reader.onload = function (e) {
             const img = new Image();
             img.src = e.target.result;
-
             img.onload = function () {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 500; // Redimensiona a foto para tamanho ideal
+                const MAX_WIDTH = 500;
                 const scaleSize = MAX_WIDTH / img.width;
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                // Converte para JPG leve
                 uploadedBase64Image = canvas.toDataURL('image/jpeg', 0.7);
             };
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(input.files[0]);
     }
 }
 
-// SUBMETER O FORMULÁRIO DE CADASTRO DE PRODUTO
+// CADASTRAR PRODUTO NO ADMIN
 function handleProductSubmit(e) {
     e.preventDefault();
 
@@ -352,7 +332,6 @@ function handleProductSubmit(e) {
         image: finalImage
     };
 
-    // Tenta salvar e trata caso o armazenamento esteja cheio
     try {
         products.unshift(newProduct);
         localStorage.setItem('rp_products', JSON.stringify(products));
@@ -364,12 +343,12 @@ function handleProductSubmit(e) {
         uploadedBase64Image = "";
         alert('Produto cadastrado com sucesso!');
     } catch (err) {
-        alert('Erro ao salvar produto. O limite de armazenamento do navegador foi atingido. Tente usar links de imagens em vez de enviar arquivos pesados do computador.');
+        alert('Erro ao salvar. O limite de espaço do navegador foi atingido.');
     }
 }
 
 function deleteProduct(id) {
-    if (confirm("Deseja realmente remover este produto da RP MODA FEMININA?")) {
+    if (confirm("Deseja realmente remover este produto?")) {
         products = products.filter(p => p.id !== id);
         localStorage.setItem('rp_products', JSON.stringify(products));
         renderProducts();
@@ -379,7 +358,7 @@ function deleteProduct(id) {
 
 function renderAdminProductsList() {
     const list = document.getElementById('adminProductList');
-    if(!list) return;
+    if (!list) return;
     list.innerHTML = '';
 
     products.forEach(p => {
