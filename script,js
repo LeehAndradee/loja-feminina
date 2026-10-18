@@ -1,45 +1,49 @@
-// PRODUTOS PADRÃO (INICIAIS)
+// SENHA DO PAINEL ADMINISTRATIVO (Você pode alterar aqui)
+const ADMIN_PASSWORD = "1234";
+
+// PRODUTOS INICIAIS COM DADOS E IMAGENS REAIS DA RP MODA FEMININA
 const initialProducts = [
     {
         id: 1,
-        name: "Vestido Midi Romântico Floral",
-        price: 189.90,
+        name: "Vestido Marcante",
+        price: 119.90,
         category: "Vestidos",
         sizes: ["P", "M", "G"],
         image: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=600"
     },
     {
         id: 2,
-        name: "Blusa Elegante Sedosa Rosa",
-        price: 119.00,
-        category: "Blusas & Tops",
-        sizes: ["P", "M"],
-        image: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?auto=format&fit=crop&q=80&w=600"
-    },
-    {
-        id: 3,
-        name: "Conjunto Alfaiataria Rose",
-        price: 249.90,
+        name: "Conjunto de Short",
+        price: 89.90,
         category: "Conjuntos",
-        sizes: ["M", "G"],
+        sizes: ["P", "M", "G"],
         image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=600"
     },
     {
-        id: 4,
-        name: "Saia Plissada Rosa Bebê",
-        price: 139.90,
-        category: "Calças & Saias",
+        id: 3,
+        name: "Conjunto Calça e Cropped",
+        price: 129.90,
+        category: "Conjuntos",
         sizes: ["P", "M", "G"],
         image: "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?auto=format&fit=crop&q=80&w=600"
+    },
+    {
+        id: 4,
+        name: "Vestido Floral",
+        price: 119.90,
+        category: "Vestidos",
+        sizes: ["P", "M", "G"],
+        image: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?auto=format&fit=crop&q=80&w=600"
     }
 ];
 
 // ESTADO DA APLICAÇÃO
-let products = JSON.parse(localStorage.getItem('bella_products')) || initialProducts;
-let cart = JSON.parse(localStorage.getItem('bella_cart')) || [];
-let storePhone = localStorage.getItem('bella_phone') || "5511999999999"; 
+let products = JSON.parse(localStorage.getItem('rp_products')) || initialProducts;
+let cart = JSON.parse(localStorage.getItem('rp_cart')) || [];
+let storePhone = localStorage.getItem('rp_phone') || "5535999888058"; 
 let selectedCategory = 'todos';
 let uploadedBase64Image = "";
+let isAdminAuthenticated = false;
 
 // INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
@@ -49,13 +53,32 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAdminProductsList();
 });
 
-// ESCUTAR ALTERAÇÕES NO NÚMERO DO WHATSAPP
+// ALTERAR NÚMERO DO WHATSAPP NO ADMIN
 document.getElementById('storePhone')?.addEventListener('change', (e) => {
     storePhone = e.target.value.replace(/\D/g, '');
-    localStorage.setItem('bella_phone', storePhone);
+    localStorage.setItem('rp_phone', storePhone);
 });
 
-// RENDERIZAR VITRINE DE PRODUTOS
+// ABRIR ADMIN COM AUTENTICAÇÃO
+function openAdminModal() {
+    if (!isAdminAuthenticated) {
+        const passwordInput = prompt("Digite a senha do Painel Administrativo:");
+        if (passwordInput === ADMIN_PASSWORD) {
+            isAdminAuthenticated = true;
+            document.getElementById('adminModal').classList.add('active');
+        } else if (passwordInput !== null) {
+            alert("Senha incorreta! Acesso negado.");
+        }
+    } else {
+        document.getElementById('adminModal').classList.add('active');
+    }
+}
+
+function closeAdminModal() {
+    document.getElementById('adminModal').classList.remove('active');
+}
+
+// RENDERIZAR VITRINE
 function renderProducts() {
     const grid = document.getElementById('productsGrid');
     grid.innerHTML = '';
@@ -84,7 +107,7 @@ function renderProducts() {
         card.innerHTML = `
             <div class="product-img-box">
                 <span class="product-badge">${product.category}</span>
-                <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x400?text=Sem+Foto'">
+                <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x400?text=RP+Moda+Feminina'">
             </div>
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
@@ -96,7 +119,7 @@ function renderProducts() {
                     <button class="btn-add-cart" onclick="addToCart(${product.id}, this)">
                         <i class="fa-solid fa-bag-shopping"></i> Sacola
                     </button>
-                    <button class="btn-direct-wa" title="Perguntar/Comprar via WhatsApp" onclick="buySingleDirect(${product.id}, this)">
+                    <button class="btn-direct-wa" title="Perguntar via WhatsApp" onclick="buySingleDirect(${product.id}, this)">
                         <i class="fa-brands fa-whatsapp"></i>
                     </button>
                 </div>
@@ -106,14 +129,12 @@ function renderProducts() {
     });
 }
 
-// SELEÇÃO DE TAMANHO NOS CARDS
 function selectSize(element) {
     const parent = element.parentElement;
     parent.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('selected'));
     element.classList.add('selected');
 }
 
-// FILTRAR POR CATEGORIA
 function filterCategory(cat) {
     selectedCategory = cat;
     document.querySelectorAll('.category-btn').forEach(btn => {
@@ -122,17 +143,15 @@ function filterCategory(cat) {
     renderProducts();
 }
 
-// FILTRAR POR BUSCA
 function filterProducts() {
     renderProducts();
 }
 
-// ADICIONAR À SACOLA
+// SACOLA DE COMPRAS
 function addToCart(productId, buttonEl) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    // Pega o tamanho selecionado no card
     const card = buttonEl.closest('.product-card');
     const selectedSizeEl = card.querySelector('.size-option.selected');
     const selectedSize = selectedSizeEl ? selectedSizeEl.innerText : (product.sizes[0] || 'U');
@@ -154,10 +173,9 @@ function addToCart(productId, buttonEl) {
 
     saveCart();
     updateCartUI();
-    toggleCart(true); // Abre a sacola automaticamente ao adicionar
+    toggleCart(true);
 }
 
-// ALTERAR QUANTIDADE NA SACOLA
 function updateCartQty(index, change) {
     cart[index].quantity += change;
     if (cart[index].quantity <= 0) {
@@ -167,7 +185,6 @@ function updateCartQty(index, change) {
     updateCartUI();
 }
 
-// ATUALIZAR INTERFACE DA SACOLA
 function updateCartUI() {
     const cartBody = document.getElementById('cartBody');
     const cartBadge = document.getElementById('cartBadge');
@@ -206,7 +223,6 @@ function updateCartUI() {
     `).join('');
 }
 
-// ABRIR/FECHAR SACOLA
 function toggleCart(forceOpen = false) {
     const overlay = document.getElementById('cartOverlay');
     const drawer = document.getElementById('cartDrawer');
@@ -220,12 +236,11 @@ function toggleCart(forceOpen = false) {
     }
 }
 
-// SALVAR SACOLA NO LOCALSTORAGE
 function saveCart() {
-    localStorage.setItem('bella_cart', JSON.stringify(cart));
+    localStorage.setItem('rp_cart', JSON.stringify(cart));
 }
 
-// FINALIZAR PEDIDO COMPLETO VIA WHATSAPP
+// ENVIO DE PEDIDO PARA O WHATSAPP
 function checkoutCart() {
     if (cart.length === 0) {
         alert("Sua sacola está vazia!");
@@ -236,11 +251,11 @@ function checkoutCart() {
     const address = document.getElementById('clientAddress').value.trim();
 
     if (!name) {
-        alert("Por favor, informe seu nome antes de finalizar.");
+        alert("Por favor, informe seu nome antes de enviar o pedido.");
         return;
     }
 
-    let message = `Olá! Gostaria de fazer um pedido:\n\n`;
+    let message = `Olá, RP MODA FEMININA! Gostaria de fazer um pedido:\n\n`;
     message += `👤 *Cliente:* ${name}\n`;
     if (address) message += `📍 *Endereço:* ${address}\n`;
     message += `------------------------------------\n`;
@@ -255,13 +270,12 @@ function checkoutCart() {
 
     message += `------------------------------------\n`;
     message += `💰 *TOTAL:* R$ ${total.toFixed(2).replace('.', ',')}\n\n`;
-    message += `Aguardo a confirmação da disponibilidade e dados para pagamento!`;
+    message += `Aguardo a confirmação dos itens!`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
 }
 
-// ENVIAR UM ÚNICO PRODUTO DIRETO PARA O WHATSAPP
 function buySingleDirect(productId, buttonEl) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -270,26 +284,17 @@ function buySingleDirect(productId, buttonEl) {
     const selectedSizeEl = card.querySelector('.size-option.selected');
     const selectedSize = selectedSizeEl ? selectedSizeEl.innerText : (product.sizes[0] || 'U');
 
-    let message = `Olá! Tenho interesse no seguinte produto:\n\n`;
+    let message = `Olá, RP MODA FEMININA! Tenho interesse na seguinte peça:\n\n`;
     message += `👗 *Produto:* ${product.name}\n`;
-    message += `📏 *Tamanho Escolhido:* ${selectedSize}\n`;
+    message += `📏 *Tamanho:* ${selectedSize}\n`;
     message += `💵 *Preço:* R$ ${product.price.toFixed(2).replace('.', ',')}\n\n`;
-    message += `Ainda está disponível?`;
+    message += `Está disponível?`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
 }
 
-// MODAL ADMINISTRATIVO
-function openAdminModal() {
-    document.getElementById('adminModal').classList.add('active');
-}
-
-function closeAdminModal() {
-    document.getElementById('adminModal').classList.remove('active');
-}
-
-// CONVERTER IMAGEM DO COMPUTADOR PARA BASE64
+// CONVERSÃO DE IMAGEM E GERENCIAMENTO DE PRODUTOS
 function convertImageToBase64(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -300,7 +305,6 @@ function convertImageToBase64(input) {
     }
 }
 
-// CADASTRAR NOVO PRODUTO VIA SISTEMA ADMIN
 function handleProductSubmit(e) {
     e.preventDefault();
 
@@ -311,7 +315,7 @@ function handleProductSubmit(e) {
     const imageUrl = document.getElementById('prodImage').value;
 
     const sizes = sizesStr.split(',').map(s => s.trim()).filter(s => s !== '');
-    const finalImage = uploadedBase64Image || imageUrl || 'https://via.placeholder.com/300x400?text=Bella+Rosa';
+    const finalImage = uploadedBase64Image || imageUrl || 'https://via.placeholder.com/300x400?text=RP+Moda+Feminina';
 
     const newProduct = {
         id: Date.now(),
@@ -323,28 +327,25 @@ function handleProductSubmit(e) {
     };
 
     products.unshift(newProduct);
-    localStorage.setItem('bella_products', JSON.stringify(products));
+    localStorage.setItem('rp_products', JSON.stringify(products));
 
     renderProducts();
     renderAdminProductsList();
 
-    // Resetar Formulário
     document.getElementById('productForm').reset();
     uploadedBase64Image = "";
     alert('Produto cadastrado com sucesso!');
 }
 
-// DELETAR PRODUTO NO ADMIN
 function deleteProduct(id) {
-    if (confirm("Tem certeza que deseja remover este produto da loja?")) {
+    if (confirm("Deseja realmente remover este produto da RP MODA FEMININA?")) {
         products = products.filter(p => p.id !== id);
-        localStorage.setItem('bella_products', JSON.stringify(products));
+        localStorage.setItem('rp_products', JSON.stringify(products));
         renderProducts();
         renderAdminProductsList();
     }
 }
 
-// RENDERIZAR LISTA DE REMOÇÃO DE PRODUTOS NO ADMIN
 function renderAdminProductsList() {
     const list = document.getElementById('adminProductList');
     list.innerHTML = '';
