@@ -403,6 +403,7 @@ body {
 
 .cart-item-qty { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
 .qty-btn {
+    
     background-color: var(--pink-light);
     border: 1px solid var(--border-pink);
     width: 22px; height: 22px; border-radius: 4px;
