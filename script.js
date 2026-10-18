@@ -287,26 +287,86 @@ function closeAdminModal() {
     document.getElementById('adminModal').classList.remove('active');
 }
 
-// CONVERTER E COMPRIMIR IMAGEM DO FORMULÁRIO
-function convertAndCompressImage(input) {
-    if (input.files && input.files[0]) {
+// FUNÇÃO ASÍNCRONA PARA PROCESSAR E COMPRIMIR IMAGEM LOCAL
+function processImageFile(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) return resolve("");
+        
         const reader = new FileReader();
         reader.onload = function (e) {
             const img = new Image();
             img.src = e.target.result;
             img.onload = function () {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 500;
+                const MAX_WIDTH = 500; // Largura ideal para web
                 const scaleSize = MAX_WIDTH / img.width;
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                uploadedBase64Image = canvas.toDataURL('image/jpeg', 0.7);
+
+                // Converte para JPG comprimido leve
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
             };
+            img.onerror = () => resolve("");
         };
-        reader.readAsDataURL(input.files[0]);
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+    });
+}
+
+// CADASTRO DE PRODUTO COM SUPORTE A IMAGENS CORRIGIDO
+async function handleProductSubmit(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('prodName').value.trim();
+    const price = parseFloat(document.getElementById('prodPrice').value);
+    const category = document.getElementById('prodCategory').value;
+    const sizesStr = document.getElementById('prodSizes').value;
+    const imageUrlInput = document.getElementById('prodImage').value.trim();
+    const fileInput = document.getElementById('prodImageFile');
+
+    let finalImage = "";
+
+    // 1. Prioriza imagem carregada do computador
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        finalImage = await processImageFile(fileInput.files[0]);
+    }
+
+    // 2. Se não houver ficheiro enviado, usa a URL informada
+    if (!finalImage && imageUrlInput) {
+        finalImage = imageUrlInput;
+    }
+
+    // 3. Imagem padrão de fallback se nada for enviado
+    if (!finalImage) {
+        finalImage = 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=600';
+    }
+
+    const sizes = sizesStr.split(',').map(s => s.trim()).filter(s => s !== '');
+
+    const newProduct = {
+        id: Date.now(),
+        name: name,
+        price: price,
+        category: category,
+        sizes: sizes.length > 0 ? sizes : ["P", "M", "G"],
+        image: finalImage
+    };
+
+    try {
+        products.unshift(newProduct);
+        localStorage.setItem('rp_products', JSON.stringify(products));
+
+        renderProducts();
+        renderAdminProductsList();
+
+        document.getElementById('productForm').reset();
+        uploadedBase64Image = "";
+        alert('Produto cadastrado com sucesso com a imagem!');
+    } catch (err) {
+        alert('A imagem é muito grande para o armazenamento do navegador. Tente colar um link direto de imagem no campo URL.');
     }
 }
 
