@@ -1,7 +1,7 @@
-// SENHA DO PAINEL ADMINISTRATIVO (Você pode alterar aqui)
+// SENHA DO PAINEL ADMINISTRATIVO
 const ADMIN_PASSWORD = "1234";
 
-// PRODUTOS INICIAIS COM DADOS E IMAGENS REAIS DA RP MODA FEMININA
+// PRODUTOS INICIAIS DA RP MODA FEMININA
 const initialProducts = [
     {
         id: 1,
@@ -47,19 +47,20 @@ let isAdminAuthenticated = false;
 
 // INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('storePhone').value = storePhone;
+    const phoneInput = document.getElementById('storePhone');
+    if(phoneInput) phoneInput.value = storePhone;
     renderProducts();
     updateCartUI();
     renderAdminProductsList();
 });
 
-// ALTERAR NÚMERO DO WHATSAPP NO ADMIN
+// ESCUTAR MUDANÇA NO TELEFONE DA LOJA
 document.getElementById('storePhone')?.addEventListener('change', (e) => {
     storePhone = e.target.value.replace(/\D/g, '');
     localStorage.setItem('rp_phone', storePhone);
 });
 
-// ABRIR ADMIN COM AUTENTICAÇÃO
+// AUTENTICAÇÃO DO ADMIN
 function openAdminModal() {
     if (!isAdminAuthenticated) {
         const passwordInput = prompt("Digite a senha do Painel Administrativo:");
@@ -81,9 +82,11 @@ function closeAdminModal() {
 // RENDERIZAR VITRINE
 function renderProducts() {
     const grid = document.getElementById('productsGrid');
+    if(!grid) return;
     grid.innerHTML = '';
 
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
     const filtered = products.filter(product => {
         const matchesCategory = selectedCategory === 'todos' || product.category === selectedCategory;
@@ -111,7 +114,7 @@ function renderProducts() {
             </div>
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
-                <div class="product-price">R$ ${product.price.toFixed(2).replace('.', ',')}</div>
+                <div class="product-price">R$ ${Number(product.price).toFixed(2).replace('.', ',')}</div>
                 <div class="product-sizes">
                     <small style="margin-right: 4px; color: var(--text-muted);">Tam:</small> ${sizesHtml}
                 </div>
@@ -190,11 +193,13 @@ function updateCartUI() {
     const cartBadge = document.getElementById('cartBadge');
     const cartTotal = document.getElementById('cartTotal');
 
+    if (!cartBody) return;
+
     const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
     const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-    cartBadge.innerText = totalItems;
-    cartTotal.innerText = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+    if (cartBadge) cartBadge.innerText = totalItems;
+    if (cartTotal) cartTotal.innerText = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
 
     if (cart.length === 0) {
         cartBody.innerHTML = `
@@ -212,7 +217,7 @@ function updateCartUI() {
             <div class="cart-item-details">
                 <div class="cart-item-title">${item.name}</div>
                 <div class="cart-item-size">Tamanho: <strong>${item.selectedSize}</strong></div>
-                <div class="cart-item-price">R$ ${item.price.toFixed(2).replace('.', ',')}</div>
+                <div class="cart-item-price">R$ ${Number(item.price).toFixed(2).replace('.', ',')}</div>
                 <div class="cart-item-qty">
                     <button class="qty-btn" onclick="updateCartQty(${idx}, -1)">-</button>
                     <span>${item.quantity}</span>
@@ -240,15 +245,18 @@ function saveCart() {
     localStorage.setItem('rp_cart', JSON.stringify(cart));
 }
 
-// ENVIO DE PEDIDO PARA O WHATSAPP
+// FINALIZAR PEDIDO VIA WHATSAPP
 function checkoutCart() {
     if (cart.length === 0) {
         alert("Sua sacola está vazia!");
         return;
     }
 
-    const name = document.getElementById('clientName').value.trim();
-    const address = document.getElementById('clientAddress').value.trim();
+    const nameInput = document.getElementById('clientName');
+    const addressInput = document.getElementById('clientAddress');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const address = addressInput ? addressInput.value.trim() : '';
 
     if (!name) {
         alert("Por favor, informe seu nome antes de enviar o pedido.");
@@ -287,24 +295,42 @@ function buySingleDirect(productId, buttonEl) {
     let message = `Olá, RP MODA FEMININA! Tenho interesse na seguinte peça:\n\n`;
     message += `👗 *Produto:* ${product.name}\n`;
     message += `📏 *Tamanho:* ${selectedSize}\n`;
-    message += `💵 *Preço:* R$ ${product.price.toFixed(2).replace('.', ',')}\n\n`;
+    message += `💵 *Preço:* R$ ${Number(product.price).toFixed(2).replace('.', ',')}\n\n`;
     message += `Está disponível?`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${storePhone}?text=${encodedMessage}`, '_blank');
 }
 
-// CONVERSÃO DE IMAGEM E GERENCIAMENTO DE PRODUTOS
-function convertImageToBase64(input) {
+// FUNÇÃO PARA REDIMENSIONAR E COMPRIMIR IMAGEM (EVITA ESTOURAR O LOCALSTORAGE)
+function convertAndCompressImage(input) {
     if (input.files && input.files[0]) {
+        const file = input.files[0];
         const reader = new FileReader();
+
         reader.onload = function (e) {
-            uploadedBase64Image = e.target.result;
+            const img = new Image();
+            img.src = e.target.result;
+
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 500; // Redimensiona a foto para tamanho ideal
+                const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // Converte para JPG leve
+                uploadedBase64Image = canvas.toDataURL('image/jpeg', 0.7);
+            };
         };
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(file);
     }
 }
 
+// SUBMETER O FORMULÁRIO DE CADASTRO DE PRODUTO
 function handleProductSubmit(e) {
     e.preventDefault();
 
@@ -326,15 +352,20 @@ function handleProductSubmit(e) {
         image: finalImage
     };
 
-    products.unshift(newProduct);
-    localStorage.setItem('rp_products', JSON.stringify(products));
+    // Tenta salvar e trata caso o armazenamento esteja cheio
+    try {
+        products.unshift(newProduct);
+        localStorage.setItem('rp_products', JSON.stringify(products));
 
-    renderProducts();
-    renderAdminProductsList();
+        renderProducts();
+        renderAdminProductsList();
 
-    document.getElementById('productForm').reset();
-    uploadedBase64Image = "";
-    alert('Produto cadastrado com sucesso!');
+        document.getElementById('productForm').reset();
+        uploadedBase64Image = "";
+        alert('Produto cadastrado com sucesso!');
+    } catch (err) {
+        alert('Erro ao salvar produto. O limite de armazenamento do navegador foi atingido. Tente usar links de imagens em vez de enviar arquivos pesados do computador.');
+    }
 }
 
 function deleteProduct(id) {
@@ -348,13 +379,14 @@ function deleteProduct(id) {
 
 function renderAdminProductsList() {
     const list = document.getElementById('adminProductList');
+    if(!list) return;
     list.innerHTML = '';
 
     products.forEach(p => {
         const item = document.createElement('div');
         item.className = 'admin-product-item';
         item.innerHTML = `
-            <span><strong>${p.name}</strong> - R$ ${p.price.toFixed(2)}</span>
+            <span><strong>${p.name}</strong> - R$ ${Number(p.price).toFixed(2)}</span>
             <button class="btn-delete" onclick="deleteProduct(${p.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
         `;
         list.appendChild(item);
