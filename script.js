@@ -1,7 +1,7 @@
 // SENHA DO PAINEL ADMIN
 const ADMIN_PASSWORD = "1234";
 
-// PRODUTOS PADRÃO RP MODA FEMININA
+// PRODUTOS INICIAIS DA RP MODA FEMININA
 const initialProducts = [
     {
         id: 1,
@@ -37,27 +37,53 @@ const initialProducts = [
     }
 ];
 
-// CARREGAMENTO DOS DADOS DADOS LOCAIS
-let products = JSON.parse(localStorage.getItem('rp_products'));
-if (!products || !Array.isArray(products) || products.length === 0) {
-    products = initialProducts;
-    localStorage.setItem('rp_products', JSON.stringify(products));
-}
-
+// ESTADO DA APLICAÇÃO
+let products = JSON.parse(localStorage.getItem('rp_products')) || initialProducts;
 let cart = JSON.parse(localStorage.getItem('rp_cart')) || [];
 let storePhone = localStorage.getItem('rp_phone') || "5535999888058"; 
 let selectedCategory = 'todos';
-let uploadedBase64Image = "";
 let isAdminAuthenticated = false;
 
-// INICIALIZAÇÃO AUTOMÁTICA
-window.onload = function() {
+// INICIALIZAÇÃO
+window.addEventListener('DOMContentLoaded', () => {
     const phoneInput = document.getElementById('storePhone');
     if (phoneInput) phoneInput.value = storePhone;
+    
+    // Escutador do formulário corrigido
+    const form = document.getElementById('productForm');
+    if (form) {
+        form.onsubmit = handleProductSubmit;
+    }
+
     renderProducts();
     updateCartUI();
     renderAdminProductsList();
-};
+});
+
+// ALTERAR WHATSAPP DA LOJA
+document.getElementById('storePhone')?.addEventListener('change', (e) => {
+    storePhone = e.target.value.replace(/\D/g, '');
+    localStorage.setItem('rp_phone', storePhone);
+});
+
+// LOGIN DO ADMIN
+function openAdminModal() {
+    if (!isAdminAuthenticated) {
+        const passwordInput = prompt("Digite a senha do Painel Administrativo:");
+        if (passwordInput === ADMIN_PASSWORD) {
+            isAdminAuthenticated = true;
+            document.getElementById('adminModal').classList.add('active');
+        } else if (passwordInput !== null) {
+            alert("Senha incorreta!");
+        }
+    } else {
+        document.getElementById('adminModal').classList.add('active');
+    }
+}
+
+function closeAdminModal() {
+    document.getElementById('adminModal').classList.remove('active');
+}
 
 // RENDERIZAR PRODUTOS NA VITRINE
 function renderProducts() {
@@ -75,7 +101,7 @@ function renderProducts() {
     });
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #806069; padding: 40px;">Nenhum produto cadastrado ou encontrado.</p>';
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #806069; padding: 40px;">Nenhum produto cadastrado.</p>`;
         return;
     }
 
@@ -90,7 +116,7 @@ function renderProducts() {
         card.innerHTML = `
             <div class="product-img-box">
                 <span class="product-badge">${product.category}</span>
-                <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x400?text=RP+Moda+Feminina'">
+                <img src="${product.image}" alt="${product.name}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=600'">
             </div>
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
@@ -112,7 +138,6 @@ function renderProducts() {
     });
 }
 
-// BOTÕES DE TAMANHO E FILTROS
 function selectSize(element) {
     const parent = element.parentElement;
     parent.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('selected'));
@@ -131,21 +156,7 @@ function filterProducts() {
     renderProducts();
 }
 
-// ABRIR/FECHAR SACOLA
-function toggleCart(forceOpen = false) {
-    const overlay = document.getElementById('cartOverlay');
-    const drawer = document.getElementById('cartDrawer');
-    if (!overlay || !drawer) return;
-
-    if (forceOpen) {
-        overlay.classList.add('active');
-        drawer.classList.add('active');
-    } else {
-        overlay.classList.toggle('active');
-        drawer.classList.toggle('active');
-    }
-}
-
+// SACOLA DE COMPRAS
 function addToCart(productId, buttonEl) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -221,7 +232,20 @@ function updateCartUI() {
     `).join('');
 }
 
-// CHECKOUT WHATSAPP
+function toggleCart(forceOpen = false) {
+    const overlay = document.getElementById('cartOverlay');
+    const drawer = document.getElementById('cartDrawer');
+
+    if (forceOpen) {
+        overlay.classList.add('active');
+        drawer.classList.add('active');
+    } else {
+        overlay.classList.toggle('active');
+        drawer.classList.toggle('active');
+    }
+}
+
+// CHECKOUT VIA WHATSAPP
 function checkoutCart() {
     if (cart.length === 0) return alert("Sua sacola está vazia!");
 
@@ -268,55 +292,18 @@ function buySingleDirect(productId, buttonEl) {
     window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-// ABRIR/FECHAR ADMIN
-function openAdminModal() {
-    if (!isAdminAuthenticated) {
-        const passwordInput = prompt("Digite a senha do Painel Administrativo:");
-        if (passwordInput === ADMIN_PASSWORD) {
-            isAdminAuthenticated = true;
-            document.getElementById('adminModal').classList.add('active');
-        } else if (passwordInput !== null) {
-            alert("Senha incorreta!");
-        }
-    } else {
-        document.getElementById('adminModal').classList.add('active');
-    }
-}
-
-function closeAdminModal() {
-    document.getElementById('adminModal').classList.remove('active');
-}
-
-// FUNÇÃO ASÍNCRONA PARA PROCESSAR E COMPRIMIR IMAGEM LOCAL
-function processImageFile(file) {
-    return new Promise((resolve, reject) => {
-        if (!file) return resolve("");
-        
+// LER ARQUIVO LOCAL
+function readFileAsBase64(file) {
+    return new Promise((resolve) => {
+        if (!file) return resolve('');
         const reader = new FileReader();
-        reader.onload = function (e) {
-            const img = new Image();
-            img.src = e.target.result;
-            img.onload = function () {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 500; // Largura ideal para web
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                // Converte para JPG comprimido leve
-                resolve(canvas.toDataURL('image/jpeg', 0.8));
-            };
-            img.onerror = () => resolve("");
-        };
-        reader.onerror = () => resolve("");
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = () => resolve('');
         reader.readAsDataURL(file);
     });
 }
 
-// CADASTRO DE PRODUTO COM SUPORTE A IMAGENS CORRIGIDO
+// PROCESSAR CADASTRO DE NOVO PRODUTO
 async function handleProductSubmit(e) {
     e.preventDefault();
 
@@ -324,22 +311,19 @@ async function handleProductSubmit(e) {
     const price = parseFloat(document.getElementById('prodPrice').value);
     const category = document.getElementById('prodCategory').value;
     const sizesStr = document.getElementById('prodSizes').value;
-    const imageUrlInput = document.getElementById('prodImage').value.trim();
+    const imageUrl = document.getElementById('prodImage').value.trim();
     const fileInput = document.getElementById('prodImageFile');
 
-    let finalImage = "";
+    let finalImage = imageUrl;
 
-    // 1. Prioriza imagem carregada do computador
+    // Se o usuário selecionou uma imagem do computador
     if (fileInput && fileInput.files && fileInput.files[0]) {
-        finalImage = await processImageFile(fileInput.files[0]);
+        const base64Data = await readFileAsBase64(fileInput.files[0]);
+        if (base64Data) {
+            finalImage = base64Data;
+        }
     }
 
-    // 2. Se não houver ficheiro enviado, usa a URL informada
-    if (!finalImage && imageUrlInput) {
-        finalImage = imageUrlInput;
-    }
-
-    // 3. Imagem padrão de fallback se nada for enviado
     if (!finalImage) {
         finalImage = 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=600';
     }
@@ -363,47 +347,10 @@ async function handleProductSubmit(e) {
         renderAdminProductsList();
 
         document.getElementById('productForm').reset();
-        uploadedBase64Image = "";
-        alert('Produto cadastrado com sucesso com a imagem!');
-    } catch (err) {
-        alert('A imagem é muito grande para o armazenamento do navegador. Tente colar um link direto de imagem no campo URL.');
-    }
-}
-
-// CADASTRAR PRODUTO NO ADMIN
-function handleProductSubmit(e) {
-    e.preventDefault();
-
-    const name = document.getElementById('prodName').value;
-    const price = parseFloat(document.getElementById('prodPrice').value);
-    const category = document.getElementById('prodCategory').value;
-    const sizesStr = document.getElementById('prodSizes').value;
-    const imageUrl = document.getElementById('prodImage').value;
-
-    const sizes = sizesStr.split(',').map(s => s.trim()).filter(s => s !== '');
-    const finalImage = uploadedBase64Image || imageUrl || 'https://via.placeholder.com/300x400?text=RP+Moda+Feminina';
-
-    const newProduct = {
-        id: Date.now(),
-        name: name,
-        price: price,
-        category: category,
-        sizes: sizes.length > 0 ? sizes : ["U"],
-        image: finalImage
-    };
-
-    try {
-        products.unshift(newProduct);
-        localStorage.setItem('rp_products', JSON.stringify(products));
-
-        renderProducts();
-        renderAdminProductsList();
-
-        document.getElementById('productForm').reset();
-        uploadedBase64Image = "";
         alert('Produto cadastrado com sucesso!');
     } catch (err) {
-        alert('Erro ao salvar. O limite de espaço do navegador foi atingido.');
+        // Se exceder o espaço do navegador
+        alert('Foto muito grande para o armazenamento do navegador. Recomendamos usar o site gratuito imgbb.com para gerar links de fotos e colar no campo URL.');
     }
 }
 
