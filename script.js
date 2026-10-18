@@ -33,7 +33,7 @@ const initialProducts = [
         price: 119.90,
         category: "Vestidos",
         sizes: ["P", "M", "G"],
-        image: "https://images.unsplash.com/photo-1604014237800-1c9102c219da?auto=format&fit=crop&q=80&w=600"
+        image: "https://i.ibb.co/F4F5M1Wz/5f23ef55-9031-47e7-aa80-37466ea15c5a.jpg"
     }
 ];
 
@@ -43,13 +43,13 @@ let cart = JSON.parse(localStorage.getItem('rp_cart')) || [];
 let storePhone = localStorage.getItem('rp_phone') || "5535999888058"; 
 let selectedCategory = 'todos';
 let isAdminAuthenticated = false;
+let currentDetailProduct = null;
 
 // INICIALIZAÇÃO
 window.addEventListener('DOMContentLoaded', () => {
     const phoneInput = document.getElementById('storePhone');
     if (phoneInput) phoneInput.value = storePhone;
     
-    // Escutador do formulário corrigido
     const form = document.getElementById('productForm');
     if (form) {
         form.onsubmit = handleProductSubmit;
@@ -60,13 +60,13 @@ window.addEventListener('DOMContentLoaded', () => {
     renderAdminProductsList();
 });
 
-// ALTERAR WHATSAPP DA LOJA
+// ALTERAR TELEFONE DA LOJA
 document.getElementById('storePhone')?.addEventListener('change', (e) => {
     storePhone = e.target.value.replace(/\D/g, '');
     localStorage.setItem('rp_phone', storePhone);
 });
 
-// LOGIN DO ADMIN
+// AUTH ADMIN
 function openAdminModal() {
     if (!isAdminAuthenticated) {
         const passwordInput = prompt("Digite a senha do Painel Administrativo:");
@@ -83,6 +83,7 @@ function openAdminModal() {
 
 function closeAdminModal() {
     document.getElementById('adminModal').classList.remove('active');
+    cancelEditing();
 }
 
 // RENDERIZAR PRODUTOS NA VITRINE
@@ -110,16 +111,16 @@ function renderProducts() {
         card.className = 'product-card';
 
         const sizesHtml = product.sizes.map((s, idx) => 
-            `<span class="size-option ${idx === 0 ? 'selected' : ''}" onclick="selectSize(this)">${s}</span>`
+            `<span class="size-option ${idx === 0 ? 'selected' : ''}" onclick="selectSize(this, event)">${s}</span>`
         ).join('');
 
         card.innerHTML = `
-            <div class="product-img-box">
+            <div class="product-img-box" onclick="openProductDetailModal(${product.id})" style="cursor: pointer;" title="Clique para ver em tela cheia">
                 <span class="product-badge">${product.category}</span>
                 <img src="${product.image}" alt="${product.name}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&q=80&w=600'">
             </div>
             <div class="product-info">
-                <h3 class="product-title">${product.name}</h3>
+                <h3 class="product-title" onclick="openProductDetailModal(${product.id})" style="cursor: pointer;">${product.name}</h3>
                 <div class="product-price">R$ ${Number(product.price).toFixed(2).replace('.', ',')}</div>
                 <div class="product-sizes">
                     <small style="margin-right: 4px; color: #806069;">Tam:</small> ${sizesHtml}
@@ -138,7 +139,8 @@ function renderProducts() {
     });
 }
 
-function selectSize(element) {
+function selectSize(element, event) {
+    if(event) event.stopPropagation();
     const parent = element.parentElement;
     parent.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('selected'));
     element.classList.add('selected');
@@ -156,6 +158,50 @@ function filterProducts() {
     renderProducts();
 }
 
+// MODAL DE DETALHES / ZOOM DO PRODUTO
+function openProductDetailModal(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    currentDetailProduct = product;
+
+    document.getElementById('modalDetailName').innerText = product.name;
+    document.getElementById('modalDetailCategory').innerText = product.category;
+    document.getElementById('modalDetailPrice').innerText = `R$ ${Number(product.price).toFixed(2).replace('.', ',')}`;
+    document.getElementById('modalDetailImg').src = product.image;
+
+    const sizesContainer = document.getElementById('modalDetailSizes');
+    sizesContainer.innerHTML = product.sizes.map((s, idx) => 
+        `<span class="size-option ${idx === 0 ? 'selected' : ''}" onclick="selectSize(this)" style="padding: 6px 14px; font-size: 0.9rem;">${s}</span>`
+    ).join('');
+
+    document.getElementById('modalBtnAddCart').onclick = () => {
+        const selectedSizeEl = sizesContainer.querySelector('.size-option.selected');
+        const selectedSize = selectedSizeEl ? selectedSizeEl.innerText : product.sizes[0];
+        addCustomToCart(product, selectedSize);
+        closeProductDetailModal();
+    };
+
+    document.getElementById('modalBtnWhatsApp').onclick = () => {
+        const selectedSizeEl = sizesContainer.querySelector('.size-option.selected');
+        const selectedSize = selectedSizeEl ? selectedSizeEl.innerText : product.sizes[0];
+        
+        let message = `Olá, RP MODA FEMININA! Tenho interesse na seguinte peça:\n\n`;
+        message += `👗 *Produto:* ${product.name}\n`;
+        message += `📏 *Tamanho:* ${selectedSize}\n`;
+        message += `💵 *Preço:* R$ ${Number(product.price).toFixed(2).replace('.', ',')}\n\n`;
+        message += `Está disponível?`;
+
+        window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`, '_blank');
+    };
+
+    document.getElementById('productDetailModal').classList.add('active');
+}
+
+function closeProductDetailModal() {
+    document.getElementById('productDetailModal').classList.remove('active');
+}
+
 // SACOLA DE COMPRAS
 function addToCart(productId, buttonEl) {
     const product = products.find(p => p.id === productId);
@@ -165,7 +211,11 @@ function addToCart(productId, buttonEl) {
     const selectedSizeEl = card.querySelector('.size-option.selected');
     const selectedSize = selectedSizeEl ? selectedSizeEl.innerText : (product.sizes[0] || 'U');
 
-    const cartItemIndex = cart.findIndex(item => item.id === productId && item.selectedSize === selectedSize);
+    addCustomToCart(product, selectedSize);
+}
+
+function addCustomToCart(product, selectedSize) {
+    const cartItemIndex = cart.findIndex(item => item.id === product.id && item.selectedSize === selectedSize);
 
     if (cartItemIndex > -1) {
         cart[cartItemIndex].quantity += 1;
@@ -292,7 +342,7 @@ function buySingleDirect(productId, buttonEl) {
     window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-// LER ARQUIVO LOCAL
+// LEITURA DE ARQUIVO
 function readFileAsBase64(file) {
     return new Promise((resolve) => {
         if (!file) return resolve('');
@@ -303,10 +353,11 @@ function readFileAsBase64(file) {
     });
 }
 
-// PROCESSAR CADASTRO DE NOVO PRODUTO
+// CADASTRAR OU EDITAR PRODUTO
 async function handleProductSubmit(e) {
     e.preventDefault();
 
+    const editingId = document.getElementById('editingProductId').value;
     const name = document.getElementById('prodName').value.trim();
     const price = parseFloat(document.getElementById('prodPrice').value);
     const category = document.getElementById('prodCategory').value;
@@ -316,12 +367,17 @@ async function handleProductSubmit(e) {
 
     let finalImage = imageUrl;
 
-    // Se o usuário selecionou uma imagem do computador
     if (fileInput && fileInput.files && fileInput.files[0]) {
         const base64Data = await readFileAsBase64(fileInput.files[0]);
         if (base64Data) {
             finalImage = base64Data;
         }
+    }
+
+    // Se estiver editando e não enviou nova imagem, mantém a antiga
+    if (editingId && !finalImage) {
+        const existingProduct = products.find(p => p.id == editingId);
+        if (existingProduct) finalImage = existingProduct.image;
     }
 
     if (!finalImage) {
@@ -330,28 +386,75 @@ async function handleProductSubmit(e) {
 
     const sizes = sizesStr.split(',').map(s => s.trim()).filter(s => s !== '');
 
-    const newProduct = {
-        id: Date.now(),
-        name: name,
-        price: price,
-        category: category,
-        sizes: sizes.length > 0 ? sizes : ["P", "M", "G"],
-        image: finalImage
-    };
-
-    try {
+    if (editingId) {
+        // Atualiza Produto Existente
+        const index = products.findIndex(p => p.id == editingId);
+        if (index > -1) {
+            products[index] = {
+                id: Number(editingId),
+                name: name,
+                price: price,
+                category: category,
+                sizes: sizes.length > 0 ? sizes : ["P", "M", "G"],
+                image: finalImage
+            };
+            alert('Produto atualizado com sucesso!');
+        }
+    } else {
+        // Cadastra Novo Produto
+        const newProduct = {
+            id: Date.now(),
+            name: name,
+            price: price,
+            category: category,
+            sizes: sizes.length > 0 ? sizes : ["P", "M", "G"],
+            image: finalImage
+        };
         products.unshift(newProduct);
-        localStorage.setItem('rp_products', JSON.stringify(products));
-
-        renderProducts();
-        renderAdminProductsList();
-
-        document.getElementById('productForm').reset();
         alert('Produto cadastrado com sucesso!');
-    } catch (err) {
-        // Se exceder o espaço do navegador
-        alert('Foto muito grande para o armazenamento do navegador. Recomendamos usar o site gratuito imgbb.com para gerar links de fotos e colar no campo URL.');
     }
+
+    localStorage.setItem('rp_products', JSON.stringify(products));
+
+    renderProducts();
+    renderAdminProductsList();
+    cancelEditing();
+}
+
+// EDITAR PRODUTO NO ADMIN
+function editProduct(id) {
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+
+    document.getElementById('editingProductId').value = product.id;
+    document.getElementById('prodName').value = product.name;
+    document.getElementById('prodPrice').value = product.price;
+    document.getElementById('prodCategory').value = product.category;
+    document.getElementById('prodSizes').value = product.sizes.join(', ');
+    document.getElementById('prodImage').value = product.image;
+
+    document.getElementById('adminFormTitle').innerText = 'Painel Admin - Editar Produto';
+    const btnSubmit = document.getElementById('btnSubmitProduct');
+    btnSubmit.innerHTML = '<i class="fa-solid fa-check"></i> Salvar Alterações';
+    btnSubmit.style.backgroundColor = '#25d366';
+
+    document.getElementById('btnCancelEdit').style.display = 'block';
+
+    // Rola para o topo do modal para visualizar o formulário preenchido
+    document.querySelector('#adminModal .modal-content').scrollTop = 0;
+}
+
+// CANCELAR EDIÇÃO
+function cancelEditing() {
+    document.getElementById('editingProductId').value = '';
+    document.getElementById('productForm').reset();
+    document.getElementById('adminFormTitle').innerText = 'Painel Admin - Cadastrar Produto';
+
+    const btnSubmit = document.getElementById('btnSubmitProduct');
+    btnSubmit.innerHTML = '<i class="fa-solid fa-plus"></i> Cadastrar Produto';
+    btnSubmit.style.backgroundColor = 'var(--pink-dark)';
+
+    document.getElementById('btnCancelEdit').style.display = 'none';
 }
 
 function deleteProduct(id) {
@@ -373,7 +476,10 @@ function renderAdminProductsList() {
         item.className = 'admin-product-item';
         item.innerHTML = `
             <span><strong>${p.name}</strong> - R$ ${Number(p.price).toFixed(2)}</span>
-            <button class="btn-delete" onclick="deleteProduct(${p.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn-delete" style="background-color: #3498db;" onclick="editProduct(${p.id})"><i class="fa-solid fa-pen"></i> Editar</button>
+                <button class="btn-delete" onclick="deleteProduct(${p.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
+            </div>
         `;
         list.appendChild(item);
     });

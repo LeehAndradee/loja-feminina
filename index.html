@@ -116,11 +116,47 @@
         </div>
     </aside>
 
-    <!-- Modal Admin (Protegido por Senha) -->
+    <!-- MODAL DE DETALHES / ZOOM DO PRODUTO -->
+    <div class="modal" id="productDetailModal">
+        <div class="modal-content" style="max-width: 700px; padding: 20px;">
+            <div class="modal-header">
+                <h3 id="modalDetailTitle">Detalhes do Produto</h3>
+                <button class="close-modal" onclick="closeProductDetailModal()">&times;</button>
+            </div>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
+                <div style="flex: 1; min-width: 260px; max-height: 420px; overflow: hidden; border-radius: 12px; background: #fdf0f2; text-align: center;">
+                    <img id="modalDetailImg" src="" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
+                </div>
+                <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <span id="modalDetailCategory" class="product-badge" style="position: static; display: inline-block; margin-bottom: 10px;"></span>
+                        <h2 id="modalDetailName" style="font-family: 'Playfair Display', serif; color: var(--text-color); margin-bottom: 10px;"></h2>
+                        <div id="modalDetailPrice" style="font-size: 1.6rem; font-weight: 700; color: var(--pink-dark); margin-bottom: 15px;"></div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px;">Selecione o Tamanho:</label>
+                            <div id="modalDetailSizes" class="product-sizes" style="display: flex; gap: 8px;"></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <button id="modalBtnAddCart" class="btn-add-cart" style="padding: 12px; font-size: 0.95rem;">
+                            <i class="fa-solid fa-bag-shopping"></i> Adicionar à Sacola
+                        </button>
+                        <button id="modalBtnWhatsApp" class="btn-whatsapp-checkout" style="padding: 12px; font-size: 0.95rem;">
+                            <i class="fa-brands fa-whatsapp"></i> Comprar via WhatsApp
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Admin (Com Suporte a Edição) -->
     <div class="modal" id="adminModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Painel Administrativo - RP MODA</h3>
+                <h3 id="adminFormTitle">Painel Admin - Cadastrar Produto</h3>
                 <button class="close-modal" onclick="closeAdminModal()">&times;</button>
             </div>
 
@@ -129,7 +165,10 @@
                 <input type="text" id="storePhone" placeholder="Ex: 5535999888058">
             </div>
 
-            <form id="productForm" onsubmit="handleProductSubmit(event)">
+            <form id="productForm">
+                <!-- Campo Oculto para ID de Edição -->
+                <input type="hidden" id="editingProductId" value="">
+
                 <div class="form-group">
                     <label for="prodName">Nome do Produto *</label>
                     <input type="text" id="prodName" required placeholder="Ex: Vestido Floral">
@@ -158,13 +197,16 @@
 
                 <div class="form-group">
                     <label for="prodImage">Link da Imagem ou Upload</label>
-                    <input type="url" id="prodImage" placeholder="https://link-da-foto.com/foto.jpg">
+                    <input type="url" id="prodImage" placeholder="https://i.ibb.co/xxxxx/foto.jpg">
                     <span style="font-size: 0.8rem; color: #888; display: block; margin: 4px 0;">OU selecione uma foto do dispositivo:</span>
-                    <input type="file" id="prodImageFile" accept="image/*" onchange="convertImageToBase64(this)">
+                    <input type="file" id="prodImageFile" accept="image/*">
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" id="btnSubmitProduct" class="btn-submit">
                     <i class="fa-solid fa-plus"></i> Cadastrar Produto
+                </button>
+                <button type="button" id="btnCancelEdit" class="btn-submit" style="background-color: #888; margin-top: 8px; display: none;" onclick="cancelEditing()">
+                    Cancelar Edição
                 </button>
             </form>
 
@@ -172,12 +214,12 @@
 
             <h4 style="margin-bottom: 12px; font-family: 'Playfair Display', serif; color: #4a2c35;">Gerenciar Produtos Cadastrados</h4>
             <div id="adminProductList" class="admin-product-list">
-                <!-- Lista para exclusão -->
+                <!-- Lista para edição e exclusão -->
             </div>
         </div>
     </div>
 
-<!-- JavaScript Externo -->
-<script src="./script.js"></script>
+    <!-- JavaScript Externo -->
+    <script src="script.js"></script>
 </body>
 </html>
